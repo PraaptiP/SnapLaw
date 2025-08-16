@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapLaw - AI Legal Document Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f8fafc; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+        /* Smooth animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+        .animate-slide-in-left { animation: slideInLeft 0.8s ease-out forwards; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        /* Glass morphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Gradient backgrounds */
+        .gradient-blue {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Button hover effects */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Card hover effects */
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        /* FAQ accordion */
+        .faq-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .faq-content.active {
+            max-height: 300px;
+        }
+
+        /* Upload area styling */
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+
+        /* Spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        /* Tab styles */
+        .tab-nav {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .tab-nav button {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 1rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            color: #6b7280;
+        }
+        
+        .tab-nav button.active {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Risk clause styles */
+        .risk-clause {
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid;
+        }
+        
+        .risk-clause.high {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+        
+        .risk-clause.medium {
+            background: #fffbeb;
+            border-color: #fcd34d;
+        }
+        
+        .risk-clause.low {
+            background: #f0fdf4;
+            border-color: #86efac;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <nav class="fixed top-0 left-0 right-0 z-50 glass">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8 text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.5 21L12 13.5L20.5 21L20.5 7C20.5 5.34 19.16 4 17.5 4L14.5 4L12 6.5L9.5 4L6.5 4C4.84 4 3.5 5.34 3.5 7L3.5 21Z"/>
+                        <path d="M12 13.5L8 9.5L16 9.5L12 13.5Z" fill="white"/>
+                    </svg>
+                    <span class="text-xl font-bold text-gray-900">SnapLaw</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">Features</a>
+                    <a href="#how-it-works" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">How it Works</a>
+                    <a href="#faq" class="text-gray-600 hover:text-indigo-600 transition-colors font-medium">FAQ</a>
+                    <button onclick="showUploadSection()" class="btn-primary text-white px-6 py-2 rounded-lg font-medium">
+                        Try Now
+                    </button>
+                </div>
+                <button class="md:hidden" onclick="toggleMobileMenu()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="mobile-menu" class="fixed inset-0 z-40 hidden">
+        <div class="fixed inset-0 bg-black bg-opacity-50" onclick="toggleMobileMenu()"></div>
+        <div class="fixed right-0 top-0 bottom-0 w-64 bg-white p-6">
+            <button onclick="toggleMobileMenu()" class="mb-8">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="space-y-6">
+                <a href="#features" class="block text-gray-600 hover:text-indigo-600 font-medium">Features</a>
+                <a href="#how-it-works" class="block text-gray-600 hover:text-indigo-600 font-medium">How it Works</a>
+                <a href="#faq" class="block text-gray-600 hover:text-indigo-600 font-medium">FAQ</a>
+                <button onclick="showUploadSection()" class="btn-primary text-white px-6 py-2 rounded-lg font-medium w-full">
+                    Try Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <section class="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="animate-fade-in-up">
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                    Transform Legal Documents with
+                    <span class="gradient-text">AI-Powered Analysis</span>
+                </h1>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+                    Upload any legal document and get instant, comprehensive analysis. Extract key terms, identify risks, 
+                    and understand complex clauses in plain English.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <button onclick="showUploadSection()" class="btn-primary text-white px-8 py-4 rounded-lg font-semibold text-lg w-full sm:w-auto">
+                        Analyze Document Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Powerful AI-Driven Features</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                    Our advanced AI technology makes legal document analysis accessible and comprehensive
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Smart Document Parsing</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Automatically extract and categorize key information from any legal document with 99% accuracy.
+                    </p>
+                </div>
+
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Risk Assessment</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Identify potential legal risks and red flags with detailed explanations and severity ratings.
+                    </p>
+                </div>
+
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Plain English Translation</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Convert complex legal jargon into clear, understandable language that anyone can comprehend.
+                    </p>
+                </div>
+
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Instant Analysis</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Get comprehensive analysis results in under 30 seconds, no matter how complex the document.
+                    </p>
+                </div>
+
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Compliance Checker</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Ensure your documents meet industry standards and regulatory requirements automatically.
+                    </p>
+                </div>
+
+                <div class="feature-card bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Bank-Level Security</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Your documents are protected with enterprise-grade encryption and are never stored permanently.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">How SnapLaw Works</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                    Get comprehensive legal document analysis in three simple steps
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+                <div class="text-center">
+                    <div class="relative mb-8">
+                        <div class="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mx-auto relative z-10">
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                        </div>
+                        <div class="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-gray-300 hidden lg:block"></div>
+                        <div class="absolute top-2 left-2 w-4 h-4 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            1
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Upload Document</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Simply drag and drop your legal document or browse to select it. We support PDF, DOC, DOCX, and TXT formats.
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <div class="relative mb-8">
+                        <div class="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mx-auto relative z-10">
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute top-10 left-1/2 transform -translate-x-1/2 w-px h-16 bg-gray-300 hidden lg:block"></div>
+                        <div class="absolute top-2 left-2 w-4 h-4 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            2
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">AI Analysis</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Our advanced AI processes your document, extracting key terms, identifying risks, and analyzing clauses in real-time.
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <div class="relative mb-8">
+                        <div class="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mx-auto relative z-10">
+                            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute top-2 left-2 w-4 h-4 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                            3
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Get Insights</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Receive a comprehensive report with key findings, risk assessments, and actionable recommendations in plain English.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="upload-section" class="py-20 bg-white hidden">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Analyze Your Legal Document</h2>
+                <p class="text-xl text-gray-600">Upload your document and get instant AI-powered analysis</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-2xl p-8">
+                <div id="upload-area" class="upload-area bg-white border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer transition-all">
+                    <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Drop your document here</h3>
+                    <p class="text-gray-600 mb-4">or click to browse your files</p>
+                    <p class="text-sm text-gray-500">Supports PDF, JPG, PNG, TXT up to 16MB</p>
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.txt">
+                </div>
+                
+                <div id="progress-section" class="mt-8 hidden">
+                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Analyzing document...</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="progress-bar" class="progress-bar bg-indigo-600 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div id="analysis-results" class="mt-8 hidden">
+                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+                            <h2 class="text-2xl font-bold text-white mb-2">Document Analysis Complete</h2>
+                            <p id="document-name" class="text-indigo-100"></p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 p-8 bg-gray-50 border-b">
+                            <div class="text-center">
+                                <div id="word-count" class="text-2xl font-bold text-gray-900">...</div>
+                                <div class="text-sm text-gray-600">Word Count</div>
+                            </div>
+                            <div class="text-center">
+                                <div id="complexity-score" class="text-2xl font-bold text-blue-600">...</div>
+                                <div class="text-sm text-gray-600">Complexity</div>
+                            </div>
+                            <div class="text-center">
+                                <div id="risk-clauses-count" class="text-2xl font-bold text-yellow-600">...</div>
+                                <div class="text-sm text-gray-600">Risk Clauses</div>
+                            </div>
+                            <div class="text-center">
+                                <div id="overall-risk-score" class="text-2xl font-bold text-red-600">...</div>
+                                <div class="text-sm text-gray-600">Overall Risk</div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-8">
+                            <!-- Tab Navigation -->
+                            <div class="tab-nav mb-8">
+                                <button class="active" onclick="showTab('summary')">📝 Summary</button>
+                                <button onclick="showTab('risks')">⚠️ Risk Analysis</button>
+                                <button onclick="showTab('simplified')">📖 Plain English</button>
+                                <button onclick="showTab('terms')">🔑 Key Terms</button>
+                            </div>
+
+                            <!-- Tab Contents -->
+                            <div id="summary-tab" class="tab-content active bg-blue-50 border border-blue-200 rounded-lg p-6">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Document Summary
+                                </h3>
+                                <p id="document-summary" class="text-gray-700 leading-relaxed">Loading summary...</p>
+                            </div>
+
+                            <div id="risks-tab" class="tab-content bg-red-50 border border-red-200 rounded-lg p-6">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-6 h-6 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                    Risk Analysis
+                                </h3>
+                                <div id="risk-clauses-list">Loading risk analysis...</div>
+                            </div>
+
+                            <div id="simplified-tab" class="tab-content bg-green-50 border border-green-200 rounded-lg p-6">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Plain English Explanation
+                                </h3>
+                                <div id="simplified-text">Loading simplified version...</div>
+                            </div>
+
+                            <div id="terms-tab" class="tab-content bg-purple-50 border border-purple-200 rounded-lg p-6">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Key Terms Identified
+                                </h3>
+                                <div id="key-terms-list">Loading key terms...</div>
+                            </div>
+
+                            <!-- Question Section -->
+                            <div id="question-section" class="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                                <h3 class="text-xl font-semibold text-gray-900 mb-4">❓ Ask Questions About Your Document</h3>
+                                <textarea id="question-input" class="w-full h-24 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="E.g., What is the notice period for termination?"></textarea>
+                                <button onclick="askQuestion()" class="mt-4 btn-primary text-white px-6 py-3 rounded-lg font-semibold">
+                                    Ask Question
+                                </button>
+                                <div id="answer-box" class="mt-6 bg-white border border-gray-200 p-6 rounded-lg hidden">
+                                    <h4 class="font-bold text-gray-800 mb-2">💡 Answer:</h4>
+                                    <p id="question-answer" class="text-gray-700 leading-relaxed">...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="px-8 py-6 bg-gray-50 border-t flex justify-center">
+                            <button onclick="analyzeAnotherDocument()" class="bg-white text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold hover:border-indigo-300 hover:text-indigo-600 transition-all">
+                                Analyze Another Document
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" class="py-20 bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+                <p class="text-xl text-gray-600">Everything you need to know about SnapLaw</p>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <button class="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)">
+                        <span class="text-lg font-semibold text-gray-900">What types of legal documents can SnapLaw analyze?</span>
+                        <svg class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content px-8 pb-6 text-gray-600 leading-relaxed">
+                        SnapLaw can analyze a wide variety of legal documents including employment contracts, NDAs, service agreements, lease agreements, terms of service, privacy policies, partnership agreements, and more. Our AI is trained on thousands of legal document types to provide accurate analysis across different legal domains.
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <button class="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)">
+                        <span class="text-lg font-semibold text-gray-900">How secure is my document data?</span>
+                        <svg class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content px-8 pb-6 text-gray-600 leading-relaxed">
+                        We take security extremely seriously. Your documents are encrypted during upload and processing, analyzed in a secure environment, and automatically deleted after 24 hours. We use bank-level encryption (AES-256) and never store your documents permanently. Our servers are SOC 2 compliant and regularly audited.
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <button class="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)">
+                        <span class="text-lg font-semibold text-gray-900">How accurate is the AI analysis?</span>
+                        <svg class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content px-8 pb-6 text-gray-600 leading-relaxed">
+                        Our AI analysis achieves over 95% accuracy in identifying key terms, clauses, and potential issues. However, SnapLaw is designed to assist and inform, not replace professional legal advice. For critical legal decisions, we always recommend consulting with a qualified attorney who can provide personalized legal counsel.
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <button class="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)">
+                        <span class="text-lg font-semibold text-gray-900">What file formats do you support?</span>
+                        <svg class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content px-8 pb-6 text-gray-600 leading-relaxed">
+                        We support PDF, JPG, PNG, and plain text (.txt) files up to 16MB in size. For optimal results, we recommend using PDF or clear image files. Scanned documents with poor image quality may have reduced accuracy.
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <button class="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors" onclick="toggleFAQ(this)">
+                        <span class="text-lg font-semibold text-gray-900">How long does the analysis take?</span>
+                        <svg class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="faq-content px-8 pb-6 text-gray-600 leading-relaxed">
+                        Most documents are analyzed within 15-30 seconds, regardless of complexity. Larger documents may take up to 2 minutes. You'll see real-time progress updates during the analysis process, and you can view your results immediately when complete.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <svg class="w-8 h-8 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3.5 21L12 13.5L20.5 21L20.5 7C20.5 5.34 19.16 4 17.5 4L14.5 4L12 6.5L9.5 4L6.5 4C4.84 4 3.5 5.34 3.5 7L3.5 21Z"/>
+                        <path d="M12 13.5L8 9.5L16 9.5L12 13.5Z" fill="white"/>
+                    </svg>
+                    <span class="text-2xl font-bold">SnapLaw</span>
+                </div>
+                <p class="text-gray-400 max-w-md mx-auto">
+                    Making legal document analysis accessible to everyone with the power of AI. 
+                    Understand your contracts, identify risks, and make informed decisions.
+                </p>
+                <div class="mt-8">
+                    <p class="text-gray-400">Made with ❤️ for better legal understanding</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        let currentAnalysis = null;
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Show upload section
+        function showUploadSection() {
+            const uploadSection = document.getElementById('upload-section');
+            uploadSection.classList.remove('hidden');
+            uploadSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Reset to upload state
+        function analyzeAnotherDocument() {
+            // Hide results and Q&A
+            document.getElementById('analysis-results').classList.add('hidden');
+            
+            // Show upload area again
+            document.getElementById('upload-area').classList.remove('hidden');
+            document.getElementById('progress-section').classList.add('hidden');
+            
+            // Clear file input
+            document.getElementById('file-input').value = '';
+            currentAnalysis = null;
+            
+            // Scroll to upload section
+            document.getElementById('upload-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // FAQ toggle function
+        function toggleFAQ(button) {
+            const content = button.nextElementSibling;
+            const arrow = button.querySelector('svg');
+            
+            // Close all other open FAQs
+            document.querySelectorAll('.faq-content').forEach(item => {
+                if (item !== content && item.classList.contains('active')) {
+                    item.classList.remove('active');
+                    item.style.maxHeight = 0;
+                    item.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+                }
+            });
+
+            content.classList.toggle('active');
+            if (content.classList.contains('active')) {
+                arrow.style.transform = 'rotate(180deg)';
+                content.style.maxHeight = content.scrollHeight + "px";
+            } else {
+                arrow.style.transform = 'rotate(0deg)';
+                content.style.maxHeight = 0;
+            }
+        }
+
+        // File upload functionality
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const progressSection = document.getElementById('progress-section');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const analysisResults = document.getElementById('analysis-results');
+
+        // Click to browse files
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File selection handling
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            // Validate file type
+            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'text/plain'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Please upload a PDF, JPG, PNG, or TXT file.');
+                return;
+            }
+
+            // Validate file size (16MB limit)
+            const maxSize = 16 * 1024 * 1024; // 16MB
+            if (file.size > maxSize) {
+                alert('File size must be less than 16MB.');
+                return;
+            }
+
+            // Start analysis
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Hide upload area and show progress
+            uploadArea.classList.add('hidden');
+            progressSection.classList.remove('hidden');
+            document.getElementById('document-name').textContent = file.name;
+
+            // Simulate progress bar
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress < 90) {
+                    progress += 5;
+                    progressBar.style.width = progress + '%';
+                    progressText.textContent = Math.round(progress) + '%';
+                }
+            }, 200);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyze`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                clearInterval(interval);
+                progressBar.style.width = '100%';
+                progressText.textContent = '100%';
+
+                if (result.success) {
+                    currentAnalysis = result.analysis;
+                    setTimeout(() => {
+                        progressSection.classList.add('hidden');
+                        displayResults(result.analysis);
+                        analysisResults.classList.remove('hidden');
+                    }, 500);
+                } else {
+                    alert('Error: ' + result.error);
+                    analyzeAnotherDocument();
+                }
+            } catch (error) {
+                clearInterval(interval);
+                alert('Network error: ' + error.message);
+                analyzeAnotherDocument();
+            }
+        }
+
+        function displayResults(analysis) {
+            // Update stats
+            document.getElementById('word-count').textContent = analysis.word_count.toLocaleString();
+            document.getElementById('complexity-score').textContent = analysis.complexity_score.toFixed(1);
+            document.getElementById('risk-clauses-count').textContent = analysis.risk_clauses.length;
+            
+            const riskScoreEl = document.getElementById('overall-risk-score');
+            riskScoreEl.textContent = analysis.risk_score.toFixed(1);
+            riskScoreEl.className = 'text-2xl font-bold';
+            if (analysis.risk_score <= 3) riskScoreEl.classList.add('text-green-600');
+            else if (analysis.risk_score <= 6) riskScoreEl.classList.add('text-yellow-600');
+            else riskScoreEl.classList.add('text-red-600');
+
+            // Update tab contents
+            document.getElementById('document-summary').textContent = analysis.summary;
+            
+            // Handle simplified text
+            const simplifiedTextEl = document.getElementById('simplified-text');
+            simplifiedTextEl.innerHTML = '<p class="text-gray-700 leading-relaxed">' + analysis.simplified_text + '</p>';
+
+            // Handle key terms - display as styled badges
+            const keyTermsListEl = document.getElementById('key-terms-list');
+            if (Array.isArray(analysis.key_terms)) {
+                const html = analysis.key_terms.map(term =>
+                    '<span class="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium mr-2 mb-2">' + term + '</span>'
+                ).join('');
+                keyTermsListEl.innerHTML = html;
+            }
+
+            displayRiskClauses(analysis.risk_clauses);
+        }
+
+        function displayRiskClauses(riskClauses) {
+            const container = document.getElementById('risk-clauses-list');
+            container.innerHTML = '';
+
+            if (riskClauses.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-xl font-semibold text-green-600">✅ No major risk clauses detected!</p>
+                        <p class="text-gray-600">This document appears to have standard, low-risk terms.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            riskClauses.forEach(clause => {
+                const severityClass = clause.severity.toLowerCase();
+                let severityColor, borderColor, icon;
+                
+                switch(severityClass) {
+                    case 'high':
+                        severityColor = 'text-red-700';
+                        borderColor = 'border-red-200';
+                        icon = '🔴';
+                        break;
+                    case 'medium':
+                        severityColor = 'text-yellow-700';
+                        borderColor = 'border-yellow-200';
+                        icon = '🟡';
+                        break;
+                    default:
+                        severityColor = 'text-green-700';
+                        borderColor = 'border-green-200';
+                        icon = '🟢';
+                }
+                
+                const clauseElement = document.createElement('div');
+                clauseElement.className = `risk-clause ${severityClass} ${borderColor} mb-4`;
+                clauseElement.innerHTML = `
+                    <div class="flex items-start">
+                        <span class="text-2xl mr-3">${icon}</span>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-semibold ${severityColor}">${clause.type}</h4>
+                                <span class="px-2 py-1 rounded text-xs font-bold uppercase ${severityColor} bg-opacity-20">${clause.severity}</span>
+                            </div>
+                            <p class="text-gray-700 mb-2">${clause.explanation}</p>
+                            ${clause.text ? `<p class="text-sm text-gray-500 italic border-l-4 border-gray-300 pl-4">"${clause.text.substring(0, 200)}${clause.text.length > 200 ? '...' : ''}"</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(clauseElement);
+            });
+        }
+
+        function showTab(tabName) {
+            // Remove active class from all tab buttons and contents
+            document.querySelectorAll('.tab-nav button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Show corresponding tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        async function askQuestion() {
+            const questionInput = document.getElementById('question-input');
+            const question = questionInput.value.trim();
+            if (!question || !currentAnalysis) {
+                alert('Please enter a question and make sure a document is analyzed first.');
+                return;
+            }
+
+            const answerBox = document.getElementById('answer-box');
+            const questionAnswerEl = document.getElementById('question-answer');
+            
+            answerBox.classList.remove('hidden');
+            questionAnswerEl.innerHTML = '<div class="flex items-center"><div class="spinner mr-2"></div>Thinking...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/ask`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question: question})
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    questionAnswerEl.textContent = result.answer;
+                    questionAnswerEl.classList.remove('text-gray-400');
+                    questionInput.value = '';
+                } else {
+                    questionAnswerEl.textContent = 'Error: ' + result.error;
+                    questionAnswerEl.classList.add('text-red-600');
+                }
+            } catch (error) {
+                questionAnswerEl.textContent = 'Network error: ' + error.message;
+                questionAnswerEl.classList.add('text-red-600');
+            }
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+                // Close mobile menu if open
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (!mobileMenu.classList.contains('hidden')) {
+                    toggleMobileMenu();
+                }
+            });
+        });
+
+        // Add scroll effect to navbar
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('nav');
+            if (window.scrollY > 100) {
+                navbar.classList.add('shadow-lg');
+            } else {
+                navbar.classList.remove('shadow-lg');
+            }
+        });
+
+        // Add animation observer for elements
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for animation
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>
