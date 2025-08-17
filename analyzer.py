@@ -13,7 +13,7 @@ from utils import extract_text_from_pdf, extract_text_from_image, detect_risk_cl
 logger = logging.getLogger(__name__)
 
 # Configure Gemini API
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyBFWnRCGi74-bPV1U6a-D6zBLIf8rMYfMU")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_API_KEY)
 
 class DocumentAnalyzer:
